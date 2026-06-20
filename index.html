@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizador Streaming</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: sans-serif; }
+        .bg-surface { background-color: #1e293b; }
+        .border-custom { border: 1px solid #2d3f55; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <div id="app" class="p-6">
+        <h1 class="text-xl font-bold mb-4">Organizador Streaming</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-xs uppercase text-slate-400 mb-2">Texto de entrada</label>
+                <textarea id="input" class="w-full h-80 bg-[#1e293b] border border-[#2d3f55] rounded-lg p-4 text-white outline-none"></textarea>
+                <div class="mt-4 grid grid-cols-2 gap-4">
+                    <input id="clave" placeholder="Clave (ej: lima2026)" class="p-2 bg-[#1e293b] border border-[#2d3f55] rounded">
+                    <input id="precio" placeholder="Precio (ej: 13)" class="p-2 bg-[#1e293b] border border-[#2d3f55] rounded">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs uppercase text-slate-400 mb-2">Resultado</label>
+                <pre id="output" class="w-full h-80 bg-[#1e293b] border border-[#2d3f55] rounded-lg p-4 overflow-auto text-sm"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('input');
+        const output = document.getElementById('output');
+        const claveInput = document.getElementById('clave');
+        const precioInput = document.getElementById('precio');
+
+        function update() {
+            let text = input.value;
+            const clave = claveInput.value || "____";
+            
+            // Lógica básica de procesamiento
+            let result = text.replace(/CONTRASEÑA:.*(\n|$)/gi, `CONTRASEÑA: ${clave}\n`);
+            result = result.replace(/activación/gi, "MISMO PERFIL");
+            
+            output.textContent = result + "\n\nGracias por su compra, si tiene algún inconveniente con el acceso avísenos para revisarlo 🙌🏻";
+        }
+
+        [input, claveInput, precioInput].forEach(el => el.addEventListener('input', update));
+    </script>
+</body>
+</html>
