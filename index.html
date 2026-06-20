@@ -86,7 +86,7 @@ function processTemplate(raw, clave, usarNuevaClave) {
       i++; continue;
     }
     let l = line.replace(/activaci[oó]n/gi, "MISMO PERFIL");
-    l = l.replace(/-\d{7,}/g, "");
+    l = l.replace(/-\s*\d{7,}/g, "");
     result.push(l);
     i++;
   }
