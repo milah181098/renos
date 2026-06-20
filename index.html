@@ -81,8 +81,10 @@ function processTemplate(raw, clave, usarNuevaClave) {
         else if (i+1 < lines.length && lines[i+1].trim()) { valorFinal = lines[i+1].trim(); i++; }
         else { valorFinal = ""; }
       }
-      let label = labelPart;
-      if (!label.endsWith(" ")) label += " ";
+      // Asegurar que el label cierra con * antes del valor
+      let label = labelPart.trimEnd();
+      if (!label.endsWith("*")) label += "*";
+      label += " ";
       result.push(label + valorFinal);
       i++; continue;
     }
