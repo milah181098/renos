@@ -1,54 +1,182 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Organizador Streaming</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-    <style>
-        body { background-color: #0f172a; color: #e2e8f0; font-family: sans-serif; }
-        .bg-surface { background-color: #1e293b; }
-        .border-custom { border: 1px solid #2d3f55; }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Organizador Streaming</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0f172a; color:#e2e8f0; font-family:system-ui,sans-serif; height:100vh; overflow:hidden; }
+  input, textarea { font-family:system-ui,sans-serif; }
+  ::-webkit-scrollbar { width:6px; } 
+  ::-webkit-scrollbar-track { background:#0f172a; }
+  ::-webkit-scrollbar-thumb { background:#2d3f55; border-radius:3px; }
+</style>
 </head>
-<body class="h-screen flex flex-col">
-    <div id="app" class="p-6">
-        <h1 class="text-xl font-bold mb-4">Organizador Streaming</h1>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label class="block text-xs uppercase text-slate-400 mb-2">Texto de entrada</label>
-                <textarea id="input" class="w-full h-80 bg-[#1e293b] border border-[#2d3f55] rounded-lg p-4 text-white outline-none"></textarea>
-                <div class="mt-4 grid grid-cols-2 gap-4">
-                    <input id="clave" placeholder="Clave (ej: lima2026)" class="p-2 bg-[#1e293b] border border-[#2d3f55] rounded">
-                    <input id="precio" placeholder="Precio (ej: 13)" class="p-2 bg-[#1e293b] border border-[#2d3f55] rounded">
-                </div>
-            </div>
-            <div>
-                <label class="block text-xs uppercase text-slate-400 mb-2">Resultado</label>
-                <pre id="output" class="w-full h-80 bg-[#1e293b] border border-[#2d3f55] rounded-lg p-4 overflow-auto text-sm"></pre>
-            </div>
-        </div>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const BG="#0f172a", SURFACE="#1e293b", BORDER="#2d3f55", TEXT="#e2e8f0", MUTED="#64748b", ACCENT="#3b82f6";
+
+const THANKS = "\n\nGracias por su compra, si tiene algún inconveniente con el acceso avísenos para revisarlo 🙌🏻";
+
+const REMINDER = (platform, cost) =>
+`¡Recordatorio vencimiento! ⏰
+
+Hoy vence tu suscripción de streaming: ${platform}🍿
+> Costo de renovación: ${cost}
+
+Si desea conservar el mismo perfil, puede confirmarnos hasta el mediodía. Si no desea renovar, ignore este mensaje 🕓
+
+\`Este es un mensaje automático\``;
+
+function copyText(text) {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none";
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  } catch {
+    navigator.clipboard?.writeText(text);
+  }
+}
+
+function CopyBtn({ text }) {
+  const [copied, setCopied] = useState(false);
+  const handle = () => { copyText(text); setCopied(true); setTimeout(() => setCopied(false), 1800); };
+  return (
+    <button onClick={handle} style={{display:"flex",alignItems:"center",gap:5,background:copied?"#16a34a22":BG,border:`1px solid ${copied?"#22c55e66":BORDER}`,borderRadius:8,padding:"5px 12px",cursor:"pointer",fontSize:13,color:copied?"#4ade80":TEXT,fontWeight:500,transition:"all .15s",whiteSpace:"nowrap"}}>
+      {copied ? "✓ Copiado" : "⎘ Copiar"}
+    </button>
+  );
+}
+
+function processTemplate(raw, clave, usarNuevaClave) {
+  if (!raw.trim()) return "";
+  const lines = raw.split("\n");
+  const result = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (/(?:anclado a|vinculado a|tel[eé]fono|celular)\s*:?\s*\+?[\d\s\-()]{7,}/i.test(line)) { i++; continue; }
+    const claveMatch = line.match(/^(.*?\*?(?:clave|contraseña|password)\*?[:\s]*)\*?\s*(.*)$/i);
+    if (claveMatch) {
+      const labelPart = claveMatch[1].trimEnd();
+      const inlineValue = claveMatch[2].trim();
+      let valorFinal;
+      if (usarNuevaClave) {
+        valorFinal = clave;
+        if (!inlineValue && i+1 < lines.length && lines[i+1].trim() && !/^[\*🔑📧💻🔒📅]/i.test(lines[i+1])) i++;
+      } else {
+        if (inlineValue) { valorFinal = inlineValue; }
+        else if (i+1 < lines.length && lines[i+1].trim()) { valorFinal = lines[i+1].trim(); i++; }
+        else { valorFinal = ""; }
+      }
+      let label = labelPart;
+      if (!label.endsWith(" ")) label += " ";
+      result.push(label + valorFinal);
+      i++; continue;
+    }
+    let l = line.replace(/activaci[oó]n/gi, "MISMO PERFIL");
+    l = l.replace(/-\d{7,}/g, "");
+    result.push(l);
+    i++;
+  }
+  return result.join("\n").replace(/\n{3,}/g, "\n\n").trim() + THANKS;
+}
+
+function detectPlatform(raw) {
+  const platforms = ["NETFLIX","DISNEY+","DISNEY PLUS","HBO MAX","HBO","AMAZON PRIME","PRIME VIDEO","APPLE TV+","APPLE TV","PARAMOUNT+","PARAMOUNT","CRUNCHYROLL","SPOTIFY","MAX","STAR+","STAR PLUS","VIX","YOUTUBE PREMIUM","PEACOCK"];
+  const upper = raw.toUpperCase();
+  for (const p of platforms) { if (upper.includes(p)) return p; }
+  return "STREAMING";
+}
+
+function App() {
+  const [clave, setClave] = useState("");
+  const [precio, setPrecio] = useState("");
+  const [usarNuevaClave, setUsarNuevaClave] = useState(true);
+  const [template, setTemplate] = useState("");
+  const [output, setOutput] = useState("");
+  const [platform, setPlatform] = useState("STREAMING");
+
+  useEffect(() => {
+    setPlatform(detectPlatform(template));
+    setOutput(processTemplate(template, clave, usarNuevaClave));
+  }, [template, clave, usarNuevaClave]);
+
+  const costoFinal = precio ? `S/.${precio}` : "S/.??";
+  const reminder = REMINDER(platform, costoFinal);
+
+  const inp = (label, val, set, ph) => (
+    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+      <span style={{fontSize:11,color:MUTED,fontWeight:500,textTransform:"uppercase",letterSpacing:".4px"}}>{label}</span>
+      <input value={val} onChange={e=>set(e.target.value)} placeholder={ph}
+        style={{padding:"8px 11px",borderRadius:8,border:`1px solid ${BORDER}`,background:BG,color:TEXT,fontSize:14,outline:"none",width:"100%"}}/>
     </div>
+  );
 
-    <script>
-        const input = document.getElementById('input');
-        const output = document.getElementById('output');
-        const claveInput = document.getElementById('clave');
-        const precioInput = document.getElementById('precio');
+  const preStyle = {margin:0,fontFamily:"system-ui,sans-serif",fontSize:13.5,color:TEXT,whiteSpace:"pre-wrap",wordBreak:"break-word",lineHeight:1.75,background:SURFACE,borderRadius:10,padding:"12px 14px",border:`1px solid ${BORDER}`};
 
-        function update() {
-            let text = input.value;
-            const clave = claveInput.value || "____";
-            
-            // Lógica básica de procesamiento
-            let result = text.replace(/CONTRASEÑA:.*(\n|$)/gi, `CONTRASEÑA: ${clave}\n`);
-            result = result.replace(/activación/gi, "MISMO PERFIL");
-            
-            output.textContent = result + "\n\nGracias por su compra, si tiene algún inconveniente con el acceso avísenos para revisarlo 🙌🏻";
-        }
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
+      {/* Barra superior */}
+      <div style={{padding:"12px 20px",borderBottom:`1px solid ${BORDER}`,display:"flex",flexWrap:"wrap",gap:12,alignItems:"flex-end",background:SURFACE,flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginRight:4}}>
+          <span style={{fontSize:18}}>📋</span>
+          <span style={{fontWeight:600,fontSize:15,color:TEXT}}>Organizador streaming</span>
+        </div>
+        <div style={{flex:1,display:"flex",gap:12,flexWrap:"wrap",alignItems:"flex-end"}}>
+          <div style={{minWidth:150}}>{inp("🔑 Clave del mes", clave, setClave, "ej: lima2026")}</div>
+          <div style={{minWidth:90}}>{inp("💰 Precio", precio, setPrecio, "ej: 13")}</div>
+          <label onClick={()=>setUsarNuevaClave(v=>!v)} style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",userSelect:"none",paddingBottom:2}}>
+            <div style={{width:17,height:17,borderRadius:4,border:`2px solid ${usarNuevaClave?ACCENT:BORDER}`,background:usarNuevaClave?ACCENT:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .15s"}}>
+              {usarNuevaClave && <span style={{fontSize:10,color:"#fff",fontWeight:700}}>✓</span>}
+            </div>
+            <span style={{fontSize:13,color:TEXT}}>Aplicar nueva clave</span>
+          </label>
+        </div>
+      </div>
 
-        [input, claveInput, precioInput].forEach(el => el.addEventListener('input', update));
-    </script>
+      {/* Doble columna */}
+      <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+        {/* Izquierda */}
+        <div style={{flex:1,display:"flex",flexDirection:"column",padding:"14px",gap:8,borderRight:`1px solid ${BORDER}`,overflow:"hidden"}}>
+          <span style={{fontSize:11,color:MUTED,fontWeight:500,textTransform:"uppercase",letterSpacing:".4px"}}>📥 Texto de entrada</span>
+          <textarea value={template} onChange={e=>setTemplate(e.target.value)}
+            placeholder={"Pega aquí la plantilla de la cuenta..."}
+            style={{flex:1,width:"100%",padding:"12px 14px",borderRadius:10,border:`1px solid ${BORDER}`,background:SURFACE,color:TEXT,fontSize:13.5,outline:"none",resize:"none",lineHeight:1.75}}
+          />
+        </div>
+
+        {/* Derecha */}
+        <div style={{flex:1,display:"flex",flexDirection:"column",padding:"14px",gap:10,overflow:"auto"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:11,color:MUTED,fontWeight:500,textTransform:"uppercase",letterSpacing:".4px"}}>✅ Plantilla modificada</span>
+            <CopyBtn text={output}/>
+          </div>
+          <pre style={preStyle}>{output || <span style={{color:MUTED,fontStyle:"italic"}}>Aquí aparecerá el resultado...</span>}</pre>
+
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
+            <span style={{fontSize:11,color:MUTED,fontWeight:500,textTransform:"uppercase",letterSpacing:".4px"}}>⏰ Recordatorio</span>
+            <CopyBtn text={reminder}/>
+          </div>
+          <pre style={preStyle}>{reminder}</pre>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
 </body>
 </html>
