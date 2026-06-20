@@ -94,12 +94,14 @@ function processTemplate(raw, clave, usarNuevaClave) {
 }
 
 function detectPlatform(raw) {
-  const platforms = ["NETFLIX","DISNEY+","DISNEY PLUS","HBO MAX","HBO","AMAZON PRIME","PRIME VIDEO","APPLE TV+","APPLE TV","PARAMOUNT+","PARAMOUNT","CRUNCHYROLL","SPOTIFY","MAX","STAR+","STAR PLUS","VIX","YOUTUBE PREMIUM","PEACOCK"];
-  const upper = raw.toUpperCase();
   const found = [];
-  for (const p of platforms) {
-    if (upper.includes(p) && !found.some(f => f.includes(p) || p.includes(f))) {
-      found.push(p);
+  const lines = raw.split("\n");
+  for (const line of lines) {
+    // Buscar líneas tipo: *ACTIVACIÓN HBO MAX* o ✅ *ACTIVACIÓN NETFLIX*
+    const m = line.match(/activaci[oó]n\s+([^\*\n]+)/i);
+    if (m) {
+      const name = m[1].replace(/\*/g, "").trim().toUpperCase();
+      if (name && !found.includes(name)) found.push(name);
     }
   }
   return found.length ? found.join(" + ") : "STREAMING";
