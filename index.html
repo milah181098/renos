@@ -25,6 +25,7 @@ const BG="#0f172a", SURFACE="#1e293b", BORDER="#2d3f55", TEXT="#e2e8f0", MUTED="
 
 const THANKS = "\n\nGracias por su compra, si tiene algún inconveniente con el acceso avísenos para revisarlo 🙌🏻";
 
+
 const REMINDER = (platform, cost) =>
 `¡Recordatorio vencimiento! ⏰
 
@@ -86,11 +87,16 @@ function processTemplate(raw, clave, usarNuevaClave) {
       i++; continue;
     }
     let l = line.replace(/activaci[oó]n/gi, "MISMO PERFIL");
-    l = l.replace(/-\s*\d{7,}/g, "");
+    // En línea de PERFIL: cortar todo lo que sigue al número del perfil
+    if (/\*?perfil\*?/i.test(l)) {
+      l = l.replace(/(\*?perfil[^\d]*\d+)\s*[-\s].*/i, "$1");
+    } else {
+      l = l.replace(/-\s*\d{7,}/g, "");
+    }
     result.push(l);
     i++;
   }
-  return result.join("\n").replace(/\n{3,}/g, "\n\n").trim() + THANKS;
+  return result.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function detectPlatform(raw) {
@@ -111,14 +117,16 @@ function App() {
   const [clave, setClave] = useState("");
   const [precio, setPrecio] = useState("");
   const [usarNuevaClave, setUsarNuevaClave] = useState(true);
+  const [usarGracias, setUsarGracias] = useState(true);
   const [template, setTemplate] = useState("");
   const [output, setOutput] = useState("");
   const [platform, setPlatform] = useState("STREAMING");
 
   useEffect(() => {
     setPlatform(detectPlatform(template));
-    setOutput(processTemplate(template, clave, usarNuevaClave));
-  }, [template, clave, usarNuevaClave]);
+    const base = processTemplate(template, clave, usarNuevaClave);
+    setOutput(base + (usarGracias && base ? THANKS : ""));
+  }, [template, clave, usarNuevaClave, usarGracias]);
 
   const costoFinal = precio ? `S/.${precio}` : "S/.??";
   const reminder = REMINDER(platform, costoFinal);
@@ -149,6 +157,12 @@ function App() {
               {usarNuevaClave && <span style={{fontSize:10,color:"#fff",fontWeight:700}}>✓</span>}
             </div>
             <span style={{fontSize:13,color:TEXT}}>Aplicar nueva clave</span>
+          </label>
+          <label onClick={()=>setUsarGracias(v=>!v)} style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",userSelect:"none",paddingBottom:2}}>
+            <div style={{width:17,height:17,borderRadius:4,border:`2px solid ${usarGracias?ACCENT:BORDER}`,background:usarGracias?ACCENT:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .15s"}}>
+              {usarGracias && <span style={{fontSize:10,color:"#fff",fontWeight:700}}>✓</span>}
+            </div>
+            <span style={{fontSize:13,color:TEXT}}>Incluir agradecimiento</span>
           </label>
         </div>
       </div>
